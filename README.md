@@ -678,18 +678,6 @@ docker build -f frontend/Dockerfile -t localhost:32000/chatterbox-tts-frontend:l
 docker push localhost:32000/chatterbox-tts-frontend:latest
 ```
 
-### Before Deploying
-
-Edit `k8s/api.yaml` and update the `hostPath` for the default voice sample to match your system:
-
-```yaml
-# In k8s/api.yaml, find this block and update the path:
-- name: voice-sample
-  hostPath:
-    path: /home/youruser/chatterbox-tts-api/voice-sample.mp3  # <-- update this
-    type: File
-```
-
 ### Deploy
 
 ```bash

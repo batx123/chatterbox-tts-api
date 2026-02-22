@@ -102,9 +102,6 @@ spec:
               mountPath: /voices
             - name: longtext-data
               mountPath: /data/long_text_jobs
-            - name: voice-sample
-              mountPath: /app/voice-sample.mp3
-              readOnly: true
           livenessProbe:
             httpGet:
               path: /health
@@ -130,12 +127,6 @@ spec:
         - name: longtext-data
           persistentVolumeClaim:
             claimName: chatterbox-longtext-data
-        - name: voice-sample
-          hostPath:
-            # UPDATE THIS PATH to match the absolute path on your host where voice-sample.mp3 lives
-            # Example: /home/youruser/chatterbox-tts-api/voice-sample.mp3
-            path: /home/demo/chatterbox-tts/chatterbox-tts-api/voice-sample.mp3
-            type: File
       runtimeClassName: nvidia
 ---
 apiVersion: v1
