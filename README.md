@@ -29,7 +29,8 @@
 🎤 **Voice Library Management** - Upload, manage, and use custom voices by name  
 📝 **Smart Text Processing** - Automatic chunking for long texts  
 📊 **Real-time Status** - Monitor TTS progress, statistics, and request history  
-🐳 **Docker Ready** - Full containerization with persistent voice storage  
+🐳 **Docker Ready** - Full containerization with persistent voice storage
+☸️ **Kubernetes Ready** - MicroK8s manifests with GPU support and MetalLB LoadBalancer
 ⚙️ **Configurable** - Extensive environment variable configuration  
 🎛️ **Parameter Control** - Real-time adjustment of speech characteristics  
 📚 **Auto Documentation** - Interactive API docs at `/docs` and `/redoc`  
@@ -649,6 +650,101 @@ docker compose -f docker/docker-compose.gpu.yml up -d
 </details>
 
 <details>
+<summary><strong>☸️ Kubernetes (MicroK8s)</strong></summary>
+
+Deploy the full stack to MicroK8s with NVIDIA GPU support, persistent storage, and a MetalLB LoadBalancer IP accessible on your LAN.
+
+### Prerequisites
+
+Enable the required MicroK8s addons:
+
+```bash
+microk8s enable registry   # Local image registry on localhost:32000
+microk8s enable gpu        # NVIDIA GPU support
+microk8s enable metallb    # LoadBalancer IPs (enter your LAN IP range when prompted)
+microk8s enable ingress    # Optional: Ingress controller
+microk8s enable hostpath-storage  # PersistentVolumeClaim support
+```
+
+### Build & Push Images
+
+```bash
+# Build and push API image
+docker build -f docker/Dockerfile.gpu -t localhost:32000/chatterbox-tts-api:latest .
+docker push localhost:32000/chatterbox-tts-api:latest
+
+# Build and push frontend image
+docker build -f frontend/Dockerfile -t localhost:32000/chatterbox-tts-frontend:latest frontend/
+docker push localhost:32000/chatterbox-tts-frontend:latest
+```
+
+### Deploy
+
+```bash
+microk8s kubectl apply -f k8s/namespace.yaml
+microk8s kubectl apply -f k8s/api.yaml
+microk8s kubectl apply -f k8s/frontend.yaml
+```
+
+### Access
+
+```bash
+# Get the frontend's LoadBalancer IP (assigned by MetalLB)
+microk8s kubectl get svc -n chatterbox chatterbox-frontend
+
+# Frontend UI
+http://<EXTERNAL-IP>
+
+# API (internal cluster DNS — for pods in other namespaces e.g. Open WebUI)
+http://chatterbox-tts.chatterbox.svc.cluster.local:4123
+```
+
+### Upload a Voice
+
+Use `kubectl port-forward` to reach the ClusterIP API from the host:
+
+```bash
+microk8s kubectl port-forward -n chatterbox svc/chatterbox-tts 4123:4123 &
+
+curl -X POST http://localhost:4123/voices \
+  -F "voice_name=my-voice" \
+  -F "voice_file=@/path/to/sample.mp3" \
+  -F "language=en"
+
+kill %1
+```
+
+### Useful Commands
+
+```bash
+# Watch pod status
+microk8s kubectl get pods -n chatterbox
+
+# Stream API logs
+microk8s kubectl logs -n chatterbox -l app=chatterbox-tts -f
+
+# Redeploy after a new image push
+microk8s kubectl rollout restart deployment/chatterbox-tts -n chatterbox
+microk8s kubectl rollout restart deployment/chatterbox-frontend -n chatterbox
+
+# Tear down (keeps PVCs/data)
+microk8s kubectl delete -f k8s/frontend.yaml -f k8s/api.yaml
+
+# Tear down including all data volumes
+microk8s kubectl delete namespace chatterbox
+```
+
+### Architecture
+
+```
+[MetalLB IP:80] → [chatterbox-frontend pod:80 (nginx)] → [chatterbox-tts:4123 (ClusterIP)] → [GPU pod]
+```
+
+Voices and model cache are stored in PersistentVolumeClaims and survive pod restarts.
+
+</details>
+
+<details>
 <summary><strong>📚 API Reference</strong></summary>
 
 ## API Endpoints
@@ -999,6 +1095,11 @@ docker/                  # Docker files consolidated
 ├── docker-compose.uv.gpu.yml # uv + GPU deployment
 └── docker-compose.cpu.yml # CPU-only deployment
 
+k8s/                     # Kubernetes manifests (MicroK8s)
+├── namespace.yaml      # chatterbox namespace
+├── api.yaml            # PVCs, GPU Deployment, ClusterIP Service
+└── frontend.yaml       # Nginx Deployment, LoadBalancer Service
+
 tests/                   # Test suite
 ├── test_api.py         # API tests
 └── test_memory.py      # Memory tests
@@ -1116,7 +1217,7 @@ To use Chatterbox TTS API with Open WebUI, follow these steps:
 - Open the Admin Panel and go to `Settings` -> `Audio`
 - Set your TTS Settings to match the following:
   - Text-to-Speech Engine: _OpenAI_
-  - API Base URL: `http://localhost:4123/v1` # alternatively, try `http://host.docker.internal:4123/v1`
+  - API Base URL: `http://localhost:4123/v1` # Docker/local; use `http://host.docker.internal:4123/v1` for Docker-in-Docker; use `http://chatterbox-tts.chatterbox.svc.cluster.local:4123/v1` for Kubernetes
   - API Key: `none`
   - TTS Model: `tts-1` or `tts-1-hd`
   - TTS Voice: _Name of the voice you've cloned_ (can also include aliases, defined in the frontend)
