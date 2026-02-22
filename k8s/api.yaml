@@ -132,6 +132,8 @@ spec:
             claimName: chatterbox-longtext-data
         - name: voice-sample
           hostPath:
+            # UPDATE THIS PATH to match the absolute path on your host where voice-sample.mp3 lives
+            # Example: /home/youruser/chatterbox-tts-api/voice-sample.mp3
             path: /home/demo/chatterbox-tts/chatterbox-tts-api/voice-sample.mp3
             type: File
       runtimeClassName: nvidia

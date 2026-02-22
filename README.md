@@ -678,6 +678,18 @@ docker build -f frontend/Dockerfile -t localhost:32000/chatterbox-tts-frontend:l
 docker push localhost:32000/chatterbox-tts-frontend:latest
 ```
 
+### Before Deploying
+
+Edit `k8s/api.yaml` and update the `hostPath` for the default voice sample to match your system:
+
+```yaml
+# In k8s/api.yaml, find this block and update the path:
+- name: voice-sample
+  hostPath:
+    path: /home/youruser/chatterbox-tts-api/voice-sample.mp3  # <-- update this
+    type: File
+```
+
 ### Deploy
 
 ```bash
@@ -1227,4 +1239,4 @@ To use Chatterbox TTS API with Open WebUI, follow these steps:
   <img src="https://lm17s1uz51.ufs.sh/f/EsgO8cDHBTOUjUe3QjHytHQ0xqn2CishmXgGfeJ4o983TUMO" alt="Settings to integrate Chatterbox TTS API with Open WebUI" />
 </p>
 
-### ➡️ View the [Open WebUI docs for installing Chatterbox TTS API](https://docs.openwebui.com/tutorials/text-to-speech/chatterbox-tts-api-integration)
+### ➡️ View the [Open WebUI TTS Integration docs](https://docs.openwebui.com/features/media-generation/audio/text-to-speech/openai-tts-integration)
