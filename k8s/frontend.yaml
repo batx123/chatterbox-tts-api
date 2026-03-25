@@ -17,7 +17,7 @@ spec:
       containers:
         - name: chatterbox-frontend
           image: localhost:32000/chatterbox-tts-frontend:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           livenessProbe:
