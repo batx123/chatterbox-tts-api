@@ -30,8 +30,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY requirements.txt ./
 RUN pip install --no-cache-dir fastapi uvicorn[standard] python-dotenv python-multipart requests psutil pydub sse-starlette
 
-# Install chatterbox-tts — with the breaking fix (pkuseg package exclusion) 
-RUN pip install git+https://github.com/travisvn/chatterbox-multilingual.git@exp
+# Install chatterbox-tts (official package, includes ChatterboxTurboTTS)
+RUN pip install --no-cache-dir chatterbox-tts==0.1.7
 
 # Copy application code
 COPY app/ ./app/
@@ -55,6 +55,8 @@ ENV DEVICE=auto
 ENV MODEL_CACHE_DIR=/cache
 ENV VOICE_LIBRARY_DIR=/voices
 ENV HOST=0.0.0.0
+ENV USE_TURBO_MODEL=true
+ENV USE_MULTILINGUAL_MODEL=false
 
 # Long text TTS settings
 ENV LONG_TEXT_DATA_DIR=/data/long_text_jobs

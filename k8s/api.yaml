@@ -49,7 +49,7 @@ spec:
     spec:
       containers:
         - name: chatterbox-tts
-          image: localhost:32000/chatterbox-tts-api:latest
+          image: 192.168.1.5/microk8s/chatterbox-tts:0.1.7-turbo
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 4123
@@ -88,6 +88,10 @@ spec:
               value: "/cache"
             - name: VOICE_LIBRARY_DIR
               value: "/voices"
+            - name: USE_TURBO_MODEL
+              value: "true"
+            - name: USE_MULTILINGUAL_MODEL
+              value: "false"
             - name: NVIDIA_VISIBLE_DEVICES
               value: "all"
             - name: NVIDIA_DRIVER_CAPABILITIES

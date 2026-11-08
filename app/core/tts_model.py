@@ -7,6 +7,7 @@ import asyncio
 from enum import Enum
 from typing import Optional, Dict, Any
 from chatterbox.tts import ChatterboxTTS
+from chatterbox.tts_turbo import ChatterboxTurboTTS
 from chatterbox.mtl_tts import ChatterboxMultilingualTTS
 from app.core.mtl import SUPPORTED_LANGUAGES
 from app.config import Config, detect_device
@@ -18,6 +19,7 @@ _initialization_state = "not_started"
 _initialization_error = None
 _initialization_progress = ""
 _is_multilingual = None
+_is_turbo = None
 _supported_languages = {}
 
 
@@ -30,7 +32,7 @@ class InitializationState(Enum):
 
 async def initialize_model():
     """Initialize the Chatterbox TTS model"""
-    global _model, _device, _initialization_state, _initialization_error, _initialization_progress, _is_multilingual, _supported_languages
+    global _model, _device, _initialization_state, _initialization_error, _initialization_progress, _is_multilingual, _is_turbo, _supported_languages
     
     try:
         _initialization_state = InitializationState.INITIALIZING.value
@@ -79,28 +81,37 @@ async def initialize_model():
             if original_load_file:
                 safetensors.torch.load_file = force_cpu_load_file
         
-        # Determine if we should use multilingual model
-        use_multilingual = Config.USE_MULTILINGUAL_MODEL
-        
         _initialization_progress = "Loading TTS model (this may take a while)..."
         # Initialize model with run_in_executor for non-blocking
         loop = asyncio.get_event_loop()
-        
-        if use_multilingual:
+
+        if Config.USE_TURBO_MODEL:
+            print(f"Loading Chatterbox Turbo TTS model...")
+            _model = await loop.run_in_executor(
+                None,
+                lambda: ChatterboxTurboTTS.from_pretrained(device=_device)
+            )
+            _is_turbo = True
+            _is_multilingual = False
+            _supported_languages = {"en": "English"}
+            print(f"✓ Turbo model initialized (English only)")
+        elif Config.USE_MULTILINGUAL_MODEL:
             print(f"Loading Chatterbox Multilingual TTS model...")
             _model = await loop.run_in_executor(
-                None, 
+                None,
                 lambda: ChatterboxMultilingualTTS.from_pretrained(device=_device)
             )
+            _is_turbo = False
             _is_multilingual = True
             _supported_languages = SUPPORTED_LANGUAGES.copy()
             print(f"✓ Multilingual model initialized with {len(_supported_languages)} languages")
         else:
             print(f"Loading standard Chatterbox TTS model...")
             _model = await loop.run_in_executor(
-                None, 
+                None,
                 lambda: ChatterboxTTS.from_pretrained(device=_device)
             )
+            _is_turbo = False
             _is_multilingual = False
             _supported_languages = {"en": "English"}  # Standard model only supports English
             print(f"✓ Standard model initialized (English only)")
@@ -154,6 +165,11 @@ def is_initializing():
     return _initialization_state == InitializationState.INITIALIZING.value 
 
 
+def is_turbo():
+    """Check if the loaded model is the Turbo model"""
+    return _is_turbo
+
+
 def is_multilingual():
     """Check if the loaded model supports multilingual generation"""
     return _is_multilingual
@@ -171,8 +187,10 @@ def supports_language(language_id: str):
 
 def get_model_info() -> Dict[str, Any]:
     """Get comprehensive model information"""
+    model_type = "turbo" if _is_turbo else ("multilingual" if _is_multilingual else "standard")
     return {
-        "model_type": "multilingual" if _is_multilingual else "standard",
+        "model_type": model_type,
+        "is_turbo": _is_turbo,
         "is_multilingual": _is_multilingual,
         "supported_languages": _supported_languages,
         "language_count": len(_supported_languages),

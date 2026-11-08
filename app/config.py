@@ -42,7 +42,8 @@ class Config:
     LONG_TEXT_JOB_RETENTION_DAYS = int(os.getenv('LONG_TEXT_JOB_RETENTION_DAYS', 7))
     LONG_TEXT_MAX_CONCURRENT_JOBS = int(os.getenv('LONG_TEXT_MAX_CONCURRENT_JOBS', 3))
 
-    # Multilingual model settings
+    # Model selection: turbo takes priority over multilingual
+    USE_TURBO_MODEL = os.getenv('USE_TURBO_MODEL', 'false').lower() == 'true'
     USE_MULTILINGUAL_MODEL = os.getenv('USE_MULTILINGUAL_MODEL', 'true').lower() == 'true'
     
     # Memory management settings
